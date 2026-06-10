@@ -6,7 +6,21 @@ import { ChatGroupModel, ChatMessageModel } from './chat.model';
 export const getMyGroups = asyncHandler(async (req: AuthRequest, res: Response) => {
   const userId = req.user?.id;
   const groups = await ChatGroupModel.find({ members: userId }).populate('members', 'fullName profileImageUrl');
-  res.json(groups);
+
+  const groupsWithMeta = await Promise.all(
+    groups.map(async (group) => {
+      const lastMsg = await ChatMessageModel.findOne({ groupId: group.id })
+        .sort({ createdAt: -1 })
+        .populate('senderId', 'fullName');
+      return {
+        ...group.toJSON(),
+        lastMessage: lastMsg?.content ?? '',
+        lastMessageTime: lastMsg?.createdAt ?? group.createdAt,
+      };
+    }),
+  );
+
+  res.json(groupsWithMeta);
 });
 
 export const getChatHistory = asyncHandler(async (req: AuthRequest, res: Response) => {

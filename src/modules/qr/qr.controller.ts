@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 
 import { asyncHandler } from '../../utils/async-handler';
 import { AuthRequest } from '../../middlewares/auth';
-import { QrCodeModel, VisitorModel } from './qr.model';
+import { QrCodeModel, QrVisitorModel } from './qr.model';
 
 export const getMyQrCodes = asyncHandler(async (req: AuthRequest, res: Response) => {
   const userId = req.user?.id;
@@ -39,7 +39,7 @@ export const generateVisitorQr = asyncHandler(async (req: AuthRequest, res: Resp
   }
 
   // Create Visitor
-  const visitor = await VisitorModel.create({
+  const visitor = await QrVisitorModel.create({
     name,
     type,
     createdBy: userId,

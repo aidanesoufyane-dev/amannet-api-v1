@@ -26,7 +26,7 @@ visitorSchema.set('toJSON', {
   }
 });
 
-export const VisitorModel = model<IVisitor>('Visitor', visitorSchema);
+export const QrVisitorModel = model<IVisitor>('QrVisitor', visitorSchema);
 
 export interface IQrCode extends Document {
   token: string;
@@ -41,7 +41,7 @@ export interface IQrCode extends Document {
 const qrCodeSchema = new Schema<IQrCode>(
   {
     token: { type: String, required: true, unique: true },
-    visitorId: { type: Schema.Types.ObjectId, ref: 'Visitor', required: true },
+    visitorId: { type: Schema.Types.ObjectId, ref: 'QrVisitor', required: true },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     expiry: { type: Date, required: true },
     active: { type: Boolean, default: true },

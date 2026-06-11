@@ -123,6 +123,12 @@ export const setupConversations = asyncHandler(async (req: AuthRequest, res: Res
       isGroup: false,
       members: [userId, syndic._id],
     });
+  } else if (!syndicGroup.name) {
+    syndicGroup = await ChatGroupModel.findByIdAndUpdate(
+      syndicGroup._id,
+      { $set: { name: syndic.fullName } },
+      { new: true },
+    ) ?? syndicGroup;
   }
 
   // 3. Find user's building and create/find group chat

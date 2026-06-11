@@ -5,6 +5,52 @@ import { asyncHandler } from '../../utils/async-handler';
 import { ResidentModel } from './residents.model';
 import { UserModel } from '../users/users.model';
 import { BuildingModel } from '../buildings/buildings.model';
+import { ChatGroupModel } from '../chat/chat.model';
+
+// Auto-setup chat groups when a resident is validated
+async function setupChatForResident(residentEmail: string | undefined, apartmentNumber: string) {
+  const syndic = await UserModel.findOne({ userType: 'Syndic' });
+  if (!syndic) return;
+
+  // Find building and ensure building group exists with syndic + all building users
+  const building = await BuildingModel.findOne({ 'apartments.number': apartmentNumber });
+  if (building) {
+    const aptNumbers = building.apartments.map((a) => a.number);
+    const buildingUsers = await UserModel.find({ apartmentNumber: { $in: aptNumbers } });
+    const buildingUserIds = buildingUsers.map((u) => u._id);
+
+    const existingGroup = await ChatGroupModel.findOne({ name: building.name, isGroup: true });
+    if (!existingGroup) {
+      await ChatGroupModel.create({
+        name: building.name,
+        isGroup: true,
+        members: [syndic._id, ...buildingUserIds],
+      });
+    } else {
+      await ChatGroupModel.findByIdAndUpdate(existingGroup._id, {
+        $addToSet: { members: { $each: [syndic._id, ...buildingUserIds] } },
+      });
+    }
+  }
+
+  // If resident has a user account, create a DM with the syndic
+  if (residentEmail) {
+    const user = await UserModel.findOne({ email: residentEmail });
+    if (user) {
+      const existingDm = await ChatGroupModel.findOne({
+        isGroup: false,
+        members: { $all: [syndic._id, user._id] },
+      });
+      if (!existingDm) {
+        await ChatGroupModel.create({
+          name: syndic.fullName,
+          isGroup: false,
+          members: [syndic._id, user._id],
+        });
+      }
+    }
+  }
+}
 
 // Add resident name to their building apartment's residents array
 async function addToApartment(fullName: string, apartmentNumber: string) {
@@ -68,6 +114,7 @@ export const createResident = asyncHandler(async (req: Request, res: Response) =
 
   if (finalStatus === 'validated') {
     await addToApartment(fullName, apartmentNumber);
+    await setupChatForResident(email, apartmentNumber);
   }
 
   res.status(201).json(resident);
@@ -104,6 +151,7 @@ export const updateResident = asyncHandler(async (req: Request, res: Response) =
     // Add to new apartment if now validated
     if (newStatus === 'validated' && (nameOrAptChanged || oldStatus !== 'validated')) {
       await addToApartment(newName, newApt);
+      await setupChatForResident(resident.email, newApt);
     }
   }
 

@@ -27,7 +27,7 @@ export const env = {
   fcm: {
     projectId: process.env.FCM_PROJECT_ID ?? '',
     clientEmail: process.env.FCM_CLIENT_EMAIL ?? '',
-    privateKey: (process.env.FCM_PRIVATE_KEY ?? '').replace(/\\n/g, '\n'),
+    privateKey: (process.env.FCM_PRIVATE_KEY ?? '').replace(/^"|"$/g, '').replace(/\\n/g, '\n'),
   },
   auth: {
     otpSenderId: process.env.OTP_SENDER_ID ?? '',

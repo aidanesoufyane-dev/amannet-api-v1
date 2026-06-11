@@ -9,14 +9,19 @@ function initFirebase(): void {
     console.warn('FCM is not configured. Skipping initialization.');
     return;
   }
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: env.fcm.projectId,
-      clientEmail: env.fcm.clientEmail,
-      privateKey: env.fcm.privateKey,
-    }),
-  });
-  isInitialized = true;
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: env.fcm.projectId,
+        clientEmail: env.fcm.clientEmail,
+        privateKey: env.fcm.privateKey,
+      }),
+    });
+    isInitialized = true;
+    console.log('FCM initialized successfully.');
+  } catch (err) {
+    console.error('FCM initialization failed:', err);
+  }
 }
 
 export async function sendPush(payload: {

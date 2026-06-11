@@ -3,6 +3,7 @@ import { asyncHandler } from '../../utils/async-handler';
 import { AuthRequest } from '../../middlewares/auth';
 import { ChatGroupModel, ChatMessageModel } from './chat.model';
 import { UserModel } from '../users/users.model';
+import { BuildingModel } from '../buildings/buildings.model';
 
 export const getMyGroups = asyncHandler(async (req: AuthRequest, res: Response) => {
   const userId = req.user?.id;
@@ -97,6 +98,63 @@ export const getOrCreateDirect = asyncHandler(async (req: AuthRequest, res: Resp
   });
 
   res.status(201).json(group);
+});
+
+// Setup default conversations for a resident: DM with syndic + building group
+export const setupConversations = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const userId = req.user?.id;
+  const userApartment = req.user?.apartmentNumber;
+
+  // 1. Find syndic
+  const syndic = await UserModel.findOne({ userType: 'Syndic' });
+  if (!syndic) {
+    res.status(404).json({ message: 'Syndic not found' });
+    return;
+  }
+
+  // 2. Find or create DM with syndic
+  let syndicGroup = await ChatGroupModel.findOne({
+    isGroup: false,
+    members: { $all: [userId, syndic._id] },
+  });
+  if (!syndicGroup) {
+    syndicGroup = await ChatGroupModel.create({
+      name: syndic.fullName,
+      isGroup: false,
+      members: [userId, syndic._id],
+    });
+  }
+
+  // 3. Find user's building and create/find group chat
+  let buildingGroup = null;
+  let buildingName = null;
+  if (userApartment) {
+    const building = await BuildingModel.findOne({ 'apartments.number': userApartment });
+    if (building) {
+      buildingName = building.name;
+      const aptNumbers = building.apartments.map((a) => a.number);
+      const buildingUsers = await UserModel.find({ apartmentNumber: { $in: aptNumbers } });
+      const buildingUserIds = buildingUsers.map((u) => u._id);
+
+      buildingGroup = await ChatGroupModel.findOne({ name: building.name, isGroup: true });
+      if (!buildingGroup) {
+        buildingGroup = await ChatGroupModel.create({
+          name: building.name,
+          isGroup: true,
+          members: [syndic._id, ...buildingUserIds],
+        });
+      } else if (!buildingGroup.members.map(String).includes(String(userId))) {
+        await ChatGroupModel.findByIdAndUpdate(buildingGroup._id, { $addToSet: { members: userId } });
+      }
+    }
+  }
+
+  res.json({
+    syndicGroupId: syndicGroup._id,
+    buildingGroupId: buildingGroup?._id ?? null,
+    syndicName: syndic.fullName,
+    buildingName,
+  });
 });
 
 // Send a message to a group/conversation

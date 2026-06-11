@@ -101,6 +101,20 @@ export const getOrCreateDirect = asyncHandler(async (req: AuthRequest, res: Resp
   res.status(201).json(group);
 });
 
+// Get group info with populated members
+export const getGroupInfo = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const userId = req.user?.id;
+  const { groupId } = req.params;
+
+  const group = await ChatGroupModel.findById(groupId).populate('members', 'fullName apartmentNumber userType');
+  if (!group || !group.members.map(String).includes(String(userId))) {
+    res.status(403).json({ message: 'Access denied' });
+    return;
+  }
+
+  res.json(group);
+});
+
 // Setup default conversations for a resident: DM with syndic + building group
 export const setupConversations = asyncHandler(async (req: AuthRequest, res: Response) => {
   const userId = req.user?.id;

@@ -213,34 +213,8 @@ async function seed() {
     { label: 'Porte de Sécurité Toit', status: 'restricted' },
   ]);
 
-  // ─── CHAT GROUPS + MESSAGES ───────────────────────────────────────────────
-  console.log('💬 Seeding chat groups...');
-  const allResidents = [resident1._id, resident2._id, resident3._id];
-  const generalGroup = await ChatGroupModel.create({
-    name: 'Syndic - Général',
-    isGroup: true,
-    members: [syndic._id, ...allResidents],
-  });
-  const batAGroup = await ChatGroupModel.create({
-    name: 'Résidents Bâtiment A',
-    isGroup: true,
-    members: [syndic._id, resident1._id, resident2._id],
-  });
-  const adminDmGroup = await ChatGroupModel.create({
-    name: 'Administration',
-    isGroup: false,
-    members: [syndic._id, resident1._id],
-  });
-
-  await ChatMessageModel.insertMany([
-    { groupId: generalGroup._id, senderId: syndic._id, content: 'Bonjour à tous ! Réunion de copropriété le 20 juin à 18h00.', readBy: [syndic._id] },
-    { groupId: generalGroup._id, senderId: resident1._id, content: 'Merci pour l\'information, je serai présent.', readBy: [syndic._id, resident1._id] },
-    { groupId: generalGroup._id, senderId: resident2._id, content: 'Moi aussi, à bientôt !', readBy: [syndic._id, resident1._id, resident2._id] },
-    { groupId: batAGroup._id, senderId: syndic._id, content: 'Rappel : nettoyage des communs jeudi matin.', readBy: [syndic._id] },
-    { groupId: batAGroup._id, senderId: resident1._id, content: 'Quelqu\'un a vu mes clés ? Je les ai perdues hier.', readBy: [syndic._id, resident1._id] },
-    { groupId: adminDmGroup._id, senderId: syndic._id, content: 'Votre demande de badge parking a été validée.', readBy: [syndic._id, resident1._id] },
-    { groupId: adminDmGroup._id, senderId: resident1._id, content: 'Merci beaucoup !', readBy: [syndic._id, resident1._id] },
-  ]);
+  // Chat groups are NOT seeded — they are created on-demand via POST /chat/setup
+  // when each resident logs into the mobile app for the first time.
 
   // ─── ACCESS LOGS ──────────────────────────────────────────────────────────
   console.log('📋 Seeding access logs...');

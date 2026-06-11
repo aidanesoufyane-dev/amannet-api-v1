@@ -1,19 +1,14 @@
 import admin from 'firebase-admin';
-
 import { env } from '../config/env';
 
 let isInitialized = false;
 
 function initFirebase(): void {
-  if (isInitialized) {
-    return;
-  }
-
+  if (isInitialized) return;
   if (!env.fcm.projectId || !env.fcm.clientEmail || !env.fcm.privateKey) {
     console.warn('FCM is not configured. Skipping initialization.');
     return;
   }
-
   admin.initializeApp({
     credential: admin.credential.cert({
       projectId: env.fcm.projectId,
@@ -21,7 +16,6 @@ function initFirebase(): void {
       privateKey: env.fcm.privateKey,
     }),
   });
-
   isInitialized = true;
 }
 
@@ -29,18 +23,38 @@ export async function sendPush(payload: {
   token: string;
   title: string;
   body: string;
+  data?: Record<string, string>;
 }): Promise<void> {
   initFirebase();
-
-  if (!isInitialized) {
-    throw Object.assign(new Error('FCM not configured'), { statusCode: 400 });
+  if (!isInitialized) return;
+  try {
+    await admin.messaging().send({
+      token: payload.token,
+      notification: { title: payload.title, body: payload.body },
+      data: payload.data,
+      android: { priority: 'high' },
+    });
+  } catch (err) {
+    console.error('FCM send error:', err);
   }
+}
 
-  await admin.messaging().send({
-    token: payload.token,
-    notification: {
-      title: payload.title,
-      body: payload.body,
-    },
-  });
+export async function sendPushToMany(payload: {
+  tokens: string[];
+  title: string;
+  body: string;
+  data?: Record<string, string>;
+}): Promise<void> {
+  initFirebase();
+  if (!isInitialized || payload.tokens.length === 0) return;
+  try {
+    await admin.messaging().sendEachForMulticast({
+      tokens: payload.tokens,
+      notification: { title: payload.title, body: payload.body },
+      data: payload.data,
+      android: { priority: 'high' },
+    });
+  } catch (err) {
+    console.error('FCM multicast error:', err);
+  }
 }

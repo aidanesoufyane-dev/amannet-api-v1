@@ -5,6 +5,7 @@ import { ChatGroupModel, ChatMessageModel } from './chat.model';
 import { UserModel } from '../users/users.model';
 import { BuildingModel } from '../buildings/buildings.model';
 import { getIO } from './socket';
+import { sendPushToMany } from '../../services/fcm';
 
 export const getMyGroups = asyncHandler(async (req: AuthRequest, res: Response) => {
   const userId = req.user?.id;
@@ -242,8 +243,24 @@ export const sendMessage = asyncHandler(async (req: AuthRequest, res: Response) 
 
   const populated = await message.populate('senderId', 'fullName');
 
-  // Broadcast to socket room so mobile clients get real-time updates
+  // Broadcast via socket for real-time updates
   getIO()?.to(groupId).emit('receive_message', populated.toJSON());
+
+  // Push notifications to offline group members
+  const otherMembers = await UserModel.find({
+    _id: { $in: group.members.filter((m) => String(m) !== String(senderId)) },
+    fcmToken: { $exists: true, $ne: null },
+  });
+  const tokens = otherMembers.map((u) => u.fcmToken as string).filter(Boolean);
+  if (tokens.length > 0) {
+    const senderUser = await UserModel.findById(senderId);
+    await sendPushToMany({
+      tokens,
+      title: group.isGroup ? (group.name ?? 'Nouveau message') : (senderUser?.fullName ?? 'Nouveau message'),
+      body: content.trim().length > 100 ? content.trim().substring(0, 97) + '...' : content.trim(),
+      data: { groupId, type: 'chat_message' },
+    });
+  }
 
   res.status(201).json(populated);
 });

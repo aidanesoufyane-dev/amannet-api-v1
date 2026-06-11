@@ -29,3 +29,34 @@ export const deleteBuilding = asyncHandler(async (req: Request, res: Response) =
   await BuildingModel.findByIdAndDelete(req.params.id);
   res.status(204).send();
 });
+
+export const addApartment = asyncHandler(async (req: Request, res: Response) => {
+  const { number, surface, rentAmount, isRented } = req.body;
+  if (!number || surface === undefined) {
+    res.status(400).json({ message: 'number and surface are required' });
+    return;
+  }
+  const building = await BuildingModel.findByIdAndUpdate(
+    req.params.id,
+    { $push: { apartments: { number, surface, rentAmount, isRented: isRented ?? false, residents: [] } } },
+    { new: true },
+  );
+  if (!building) {
+    res.status(404).json({ message: 'Building not found' });
+    return;
+  }
+  res.json(building);
+});
+
+export const removeApartment = asyncHandler(async (req: Request, res: Response) => {
+  const building = await BuildingModel.findByIdAndUpdate(
+    req.params.id,
+    { $pull: { apartments: { number: req.params.aptNumber } } },
+    { new: true },
+  );
+  if (!building) {
+    res.status(404).json({ message: 'Building not found' });
+    return;
+  }
+  res.json(building);
+});

@@ -88,10 +88,10 @@ async function seed() {
   // ─── RESIDENTS ────────────────────────────────────────────────────────────
   console.log('🏠 Seeding residents...');
   await ResidentModel.insertMany([
-    { fullName: 'Ahmed Alami', apartmentNumber: 'A101', status: 'validated' },
-    { fullName: 'Fatima Zahra', apartmentNumber: 'A102', status: 'validated' },
+    { fullName: 'Ahmed Alami', apartmentNumber: 'A101', status: 'validated', email: 'ahmed@amanet.com', phone: '+212 600 000 002', userType: 'Propriétaire', hasAccount: true },
+    { fullName: 'Fatima Zahra', apartmentNumber: 'A102', status: 'validated', email: 'fatima@amanet.com', phone: '+212 600 000 003', userType: 'Locataire', hasAccount: true },
     { fullName: 'Mohamed Tazi', apartmentNumber: 'A201', status: 'validated' },
-    { fullName: 'Youssef Idrissi', apartmentNumber: 'B201', status: 'validated' },
+    { fullName: 'Youssef Idrissi', apartmentNumber: 'B201', status: 'validated', email: 'youssef@amanet.com', phone: '+212 600 000 004', userType: 'Propriétaire', hasAccount: true },
     { fullName: 'Sara Bennani', apartmentNumber: 'B202', status: 'validated' },
     { fullName: 'Nadia Chraibi', apartmentNumber: 'A103', status: 'pending' },
     { fullName: 'Omar Fassi', apartmentNumber: 'B301', status: 'pending' },

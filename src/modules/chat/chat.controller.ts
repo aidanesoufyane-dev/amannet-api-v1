@@ -4,6 +4,7 @@ import { AuthRequest } from '../../middlewares/auth';
 import { ChatGroupModel, ChatMessageModel } from './chat.model';
 import { UserModel } from '../users/users.model';
 import { BuildingModel } from '../buildings/buildings.model';
+import { getIO } from './socket';
 
 export const getMyGroups = asyncHandler(async (req: AuthRequest, res: Response) => {
   const userId = req.user?.id;
@@ -187,5 +188,9 @@ export const sendMessage = asyncHandler(async (req: AuthRequest, res: Response) 
   });
 
   const populated = await message.populate('senderId', 'fullName');
+
+  // Broadcast to socket room so mobile clients get real-time updates
+  getIO()?.to(groupId).emit('receive_message', populated.toJSON());
+
   res.status(201).json(populated);
 });

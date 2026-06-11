@@ -5,6 +5,10 @@ import { ChatGroupModel, ChatMessageModel } from './chat.model';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-for-development';
 
+let _io: Server | null = null;
+
+export const getIO = (): Server | null => _io;
+
 export const initSocketIO = (server: HttpServer) => {
   const io = new Server(server, {
     cors: {
@@ -82,5 +86,6 @@ export const initSocketIO = (server: HttpServer) => {
     });
   });
 
+  _io = io;
   return io;
 };

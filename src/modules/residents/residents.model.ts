@@ -4,6 +4,10 @@ export interface IResident extends Document {
   fullName: string;
   apartmentNumber: string;
   status: 'validated' | 'pending';
+  email?: string;
+  phone?: string;
+  userType?: string;
+  hasAccount: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -17,6 +21,10 @@ const residentSchema = new Schema<IResident>(
       enum: ['validated', 'pending'],
       default: 'pending',
     },
+    email: { type: String },
+    phone: { type: String },
+    userType: { type: String },
+    hasAccount: { type: Boolean, default: false },
   },
   { timestamps: true },
 );

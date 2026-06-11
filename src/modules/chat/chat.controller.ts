@@ -107,7 +107,7 @@ export const getGroupInfo = asyncHandler(async (req: AuthRequest, res: Response)
   const { groupId } = req.params;
 
   const group = await ChatGroupModel.findById(groupId).populate('members', 'fullName apartmentNumber userType');
-  if (!group || !group.members.map(String).includes(String(userId))) {
+  if (!group || !group.members.some((m: any) => String(m._id ?? m) === String(userId))) {
     res.status(403).json({ message: 'Access denied' });
     return;
   }
@@ -164,8 +164,12 @@ export const setupConversations = asyncHandler(async (req: AuthRequest, res: Res
           isGroup: true,
           members: [syndic._id, ...buildingUserIds],
         });
-      } else if (!buildingGroup.members.map(String).includes(String(userId))) {
-        await ChatGroupModel.findByIdAndUpdate(buildingGroup._id, { $addToSet: { members: userId } });
+      } else {
+        // Ensure current user and syndic are members
+        await ChatGroupModel.findByIdAndUpdate(buildingGroup._id, {
+          $addToSet: { members: { $each: [userId, syndic._id] } },
+        });
+        buildingGroup = await ChatGroupModel.findById(buildingGroup._id);
       }
     }
   }

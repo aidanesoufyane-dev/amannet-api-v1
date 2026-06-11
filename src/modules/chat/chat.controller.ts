@@ -182,6 +182,41 @@ export const setupConversations = asyncHandler(async (req: AuthRequest, res: Res
   });
 });
 
+// Admin: ensure building group chats exist for every building
+export const setupAllBuildingGroups = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const syndic = await UserModel.findOne({ userType: 'Syndic' });
+  if (!syndic) {
+    res.status(404).json({ message: 'Syndic not found' });
+    return;
+  }
+
+  const buildings = await BuildingModel.find();
+  const groups = [];
+
+  for (const building of buildings) {
+    const aptNumbers = building.apartments.map((a) => a.number);
+    const buildingUsers = await UserModel.find({ apartmentNumber: { $in: aptNumbers } });
+    const buildingUserIds = buildingUsers.map((u) => u._id);
+
+    let group = await ChatGroupModel.findOne({ name: building.name, isGroup: true });
+    if (!group) {
+      group = await ChatGroupModel.create({
+        name: building.name,
+        isGroup: true,
+        members: [syndic._id, ...buildingUserIds],
+      });
+    } else {
+      await ChatGroupModel.findByIdAndUpdate(group._id, {
+        $addToSet: { members: { $each: [syndic._id, ...buildingUserIds] } },
+      });
+      group = (await ChatGroupModel.findById(group._id).populate('members', 'fullName apartmentNumber userType')) ?? group;
+    }
+    groups.push(group);
+  }
+
+  res.json(groups);
+});
+
 // Send a message to a group/conversation
 export const sendMessage = asyncHandler(async (req: AuthRequest, res: Response) => {
   const senderId = req.user?.id;
